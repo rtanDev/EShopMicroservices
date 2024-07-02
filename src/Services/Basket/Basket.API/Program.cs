@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Caching.Distributed;
+
 var builder = WebApplication.CreateBuilder(args);
 
 //Add services to the container
@@ -16,7 +18,21 @@ builder.Services.AddMarten(opts =>
 }).UseLightweightSessions();
 
 builder.Services.AddScoped<IBasketRepository, BasketRepository>();
-//builder.Services.AddScoped<IBasketRepository, CachedBasketRepository>();
+builder.Services.Decorate<IBasketRepository, CachedBasketRepository>();
+
+/* Not scallable decoration
+builder.Services.AddScoped<IBasketRepository>(provider =>
+{
+    var basketRepo = provider.GetRequiredService<BasketRepository>();
+    return new CachedBasketRepository(basketRepo, provider.GetRequiredService<IDistributedCache>());
+});
+*/
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    //options.InstanceName = "Basket";
+});
 
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 
